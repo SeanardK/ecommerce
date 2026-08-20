@@ -2,7 +2,7 @@
 
 use App\Features\Auth\Middleware\KeycloakAuth;
 use App\Features\Auth\Middleware\RequireRole;
-use App\Features\Cart\CartException;
+use App\Support\DomainException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (CartException $exception, Request $request) {
+        $exceptions->render(function (DomainException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => $exception->getMessage()], 422);
             }

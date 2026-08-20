@@ -2,8 +2,8 @@
 
 namespace App\Features\Cart;
 
-use RuntimeException;
+use App\Support\DomainException;
 
-class CartException extends RuntimeException
+class CartException extends DomainException
 {
 }
