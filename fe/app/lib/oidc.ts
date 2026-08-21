@@ -1,5 +1,6 @@
 export interface OidcConfig {
   issuer: string;
+  internalIssuer?: string;
   clientId: string;
   clientSecret: string;
   redirectUri: string;
@@ -18,7 +19,7 @@ export function authorizationUrl(config: OidcConfig, state: string): string {
 }
 
 export function tokenEndpoint(config: OidcConfig): string {
-  return `${config.issuer}/protocol/openid-connect/token`;
+  return `${config.internalIssuer ?? config.issuer}/protocol/openid-connect/token`;
 }
 
 export function logoutUrl(config: OidcConfig, redirectTo: string): string {

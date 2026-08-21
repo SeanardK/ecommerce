@@ -16,6 +16,7 @@ class AuthServiceProvider extends ServiceProvider
                 $app->make(HttpClient::class),
                 $app->make(Cache::class),
                 (string) config('keycloak.issuer'),
+                (string) config('keycloak.jwks_uri'),
                 (int) config('keycloak.jwks_ttl'),
             );
         });

@@ -1,0 +1,58 @@
+{
+  "realm": "shop",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "customer" },
+      { "name": "admin" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "shop-web",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "shop-web-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      }
+    },
+    {
+      "clientId": "shop-api",
+      "enabled": true,
+      "bearerOnly": true
+    }
+  ],
+  "users": [
+    {
+      "username": "shopadmin",
+      "enabled": true,
+      "email": "admin@shop.test",
+      "emailVerified": true,
+      "firstName": "Shop",
+      "lastName": "Admin",
+      "credentials": [
+        { "type": "password", "value": "password", "temporary": false }
+      ],
+      "realmRoles": ["admin", "customer"]
+    },
+    {
+      "username": "shopper",
+      "enabled": true,
+      "email": "shopper@shop.test",
+      "emailVerified": true,
+      "firstName": "Reg",
+      "lastName": "Shopper",
+      "credentials": [
+        { "type": "password", "value": "password", "temporary": false }
+      ],
+      "realmRoles": ["customer"]
+    }
+  ]
+}

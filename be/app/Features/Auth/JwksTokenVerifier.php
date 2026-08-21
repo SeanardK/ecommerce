@@ -15,6 +15,7 @@ class JwksTokenVerifier implements TokenVerifier
         private readonly HttpClient $http,
         private readonly Cache $cache,
         private readonly string $issuer,
+        private readonly string $jwksUri,
         private readonly int $jwksTtl,
     ) {
     }
@@ -63,7 +64,7 @@ class JwksTokenVerifier implements TokenVerifier
     {
         return $this->cache->remember('keycloak.jwks', $this->jwksTtl, function (): array {
             return $this->http
-                ->get($this->issuer.'/protocol/openid-connect/certs')
+                ->get($this->jwksUri)
                 ->throw()
                 ->json();
         });

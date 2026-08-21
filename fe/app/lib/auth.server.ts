@@ -17,8 +17,10 @@ export interface SessionUser {
 
 function config(): OidcConfig {
   const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
+  const issuer = process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8080/realms/shop';
   return {
-    issuer: process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8080/realms/shop',
+    issuer,
+    internalIssuer: process.env.KEYCLOAK_INTERNAL_ISSUER ?? issuer,
     clientId: process.env.KEYCLOAK_CLIENT_ID ?? 'shop-web',
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET ?? '',
     redirectUri: `${appUrl}/auth/callback`,
