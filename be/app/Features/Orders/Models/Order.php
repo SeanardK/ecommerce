@@ -25,6 +25,8 @@ class Order extends Model
         'total_cents' => 'integer',
     ];
 
+    protected $hidden = ['updated_at'];
+
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);

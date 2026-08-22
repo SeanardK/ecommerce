@@ -18,4 +18,6 @@ class OrderItem extends Model
         'quantity' => 'integer',
         'unit_price_cents' => 'integer',
     ];
+
+    protected $hidden = ['created_at', 'updated_at'];
 }
