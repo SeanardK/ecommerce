@@ -33,11 +33,13 @@ class CatalogSeeder extends Seeder
             ]);
 
             foreach ($products as [$name, $price, $stock]) {
+                $slug = Str::slug($name);
                 Product::create([
                     'category_id' => $category->id,
                     'name' => $name,
-                    'slug' => Str::slug($name),
+                    'slug' => $slug,
                     'description' => $name.' built for everyday use.',
+                    'image_url' => 'https://picsum.photos/seed/'.$slug.'/600/400',
                     'price_cents' => $price,
                     'stock' => $stock,
                     'active' => true,

@@ -12,6 +12,7 @@ class Product extends Model
         'name',
         'slug',
         'description',
+        'image_url',
         'price_cents',
         'stock',
         'active',
@@ -22,6 +23,8 @@ class Product extends Model
         'stock' => 'integer',
         'active' => 'boolean',
     ];
+
+    protected $hidden = ['created_at', 'updated_at'];
 
     public function category(): BelongsTo
     {
