@@ -1,5 +1,6 @@
 <?php
 
+use App\Features\Admin\AdminCategoryController;
 use App\Features\Admin\AdminOrderController;
 use App\Features\Admin\AdminProductController;
 use App\Features\Auth\AuthenticatedUser;
@@ -31,6 +32,9 @@ Route::middleware(['keycloak', 'role:admin'])->prefix('admin')->group(function (
     Route::post('/products', [AdminProductController::class, 'store']);
     Route::put('/products/{product}', [AdminProductController::class, 'update']);
     Route::delete('/products/{product}', [AdminProductController::class, 'destroy']);
+
+    Route::post('/categories', [AdminCategoryController::class, 'store']);
+    Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy']);
 
     Route::get('/orders', [AdminOrderController::class, 'index']);
     Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus']);
