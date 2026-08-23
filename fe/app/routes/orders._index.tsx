@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
-import { useLoaderData, useSearchParams } from '@remix-run/react';
+import { Link, useLoaderData, useSearchParams } from '@remix-run/react';
 import { Nav } from '~/components/nav';
 import { requireUser } from '~/lib/auth.server';
 import { apiAuthed } from '~/lib/api.server';
@@ -33,9 +33,10 @@ export default function OrdersPage() {
         ) : (
           <div className="space-y-3">
             {orders.map((order) => (
-              <div
+              <Link
                 key={order.id}
-                className="rounded border border-slate-200 bg-white p-4"
+                to={`/orders/${order.id}`}
+                className="block rounded border border-slate-200 bg-white p-4 hover:shadow"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Order #{order.id}</span>
@@ -46,7 +47,7 @@ export default function OrdersPage() {
                 <p className="mt-2 text-sm text-slate-600">
                   Total {formatCents(order.total_cents)}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         )}
