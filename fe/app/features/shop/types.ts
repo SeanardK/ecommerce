@@ -10,6 +10,7 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  image_url: string | null;
   price_cents: number;
   stock: number;
   active: boolean;
@@ -43,6 +44,15 @@ export interface OrderItem {
   unit_price_cents: number;
 }
 
+export interface Address {
+  line1: string;
+  line2: string | null;
+  city: string;
+  region: string;
+  postal_code: string;
+  country: string;
+}
+
 export interface Order {
   id: number;
   status: string;
@@ -52,4 +62,5 @@ export interface Order {
   payment_reference: string | null;
   created_at: string;
   items?: OrderItem[];
+  address?: Address;
 }
