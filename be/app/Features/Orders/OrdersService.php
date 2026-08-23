@@ -2,8 +2,10 @@
 
 namespace App\Features\Orders;
 
+use App\Features\Catalog\Models\Product;
 use App\Features\Orders\Models\Order;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class OrdersService
 {
@@ -43,8 +45,16 @@ class OrdersService
             throw new OrdersException("Cannot move order from {$order->status} to {$status}");
         }
 
-        $order->update(['status' => $status]);
+        return DB::transaction(function () use ($order, $status): Order {
+            if ($status === 'cancelled') {
+                foreach ($order->items as $item) {
+                    Product::whereKey($item->product_id)->increment('stock', $item->quantity);
+                }
+            }
 
-        return $order;
+            $order->update(['status' => $status]);
+
+            return $order;
+        });
     }
 }
