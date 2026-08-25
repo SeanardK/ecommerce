@@ -26,6 +26,7 @@ Route::middleware('keycloak')->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'store']);
     Route::get('/orders', [OrdersController::class, 'index']);
     Route::get('/orders/{order}', [OrdersController::class, 'show']);
+    Route::post('/orders/{order}/cancel', [OrdersController::class, 'cancel']);
 });
 
 Route::middleware(['keycloak', 'role:admin'])->prefix('admin')->group(function () {

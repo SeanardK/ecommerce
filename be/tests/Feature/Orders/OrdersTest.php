@@ -129,4 +129,33 @@ class OrdersTest extends TestCase
             ->assertOk()
             ->assertJsonPath('per_page', 50);
     }
+
+    public function test_customer_cancels_their_own_order_and_stock_is_restored(): void
+    {
+        $order = $this->orderFor('customer-1', 'paid');
+        $product = $order->items->first()->product_id;
+        $stockBefore = Product::find($product)->stock;
+
+        $this->postJson("/api/orders/{$order->id}/cancel", [], $this->actAs('customer-1'))
+            ->assertOk()
+            ->assertJson(['status' => 'cancelled']);
+
+        $this->assertSame($stockBefore + 1, Product::find($product)->stock);
+    }
+
+    public function test_customer_cannot_cancel_another_users_order(): void
+    {
+        $order = $this->orderFor('other-user', 'paid');
+
+        $this->postJson("/api/orders/{$order->id}/cancel", [], $this->actAs('customer-1'))
+            ->assertNotFound();
+    }
+
+    public function test_customer_cannot_cancel_a_completed_order(): void
+    {
+        $order = $this->orderFor('customer-1', 'completed');
+
+        $this->postJson("/api/orders/{$order->id}/cancel", [], $this->actAs('customer-1'))
+            ->assertStatus(422);
+    }
 }

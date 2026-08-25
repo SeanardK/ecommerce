@@ -37,6 +37,13 @@ class OrdersService
         return Order::with('items')->latest()->paginate($perPage);
     }
 
+    public function cancelForUser(string $userId, int $orderId): Order
+    {
+        $order = Order::where('user_id', $userId)->findOrFail($orderId);
+
+        return $this->transition($order, 'cancelled');
+    }
+
     public function transition(Order $order, string $status): Order
     {
         $allowed = self::TRANSITIONS[$order->status] ?? [];

@@ -1,16 +1,24 @@
-import type { LoaderFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
+import { Form, Link, useLoaderData } from '@remix-run/react';
 import { Nav } from '~/components/nav';
 import { requireUser } from '~/lib/auth.server';
 import { apiAuthed } from '~/lib/api.server';
 import { formatCents } from '~/lib/money';
 import type { Order } from '~/features/shop/types';
 
+const CANCELLABLE_STATUSES = ['pending', 'paid'];
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   const order = await apiAuthed<Order>(request, `/orders/${params.id}`);
   return json({ order, user });
+}
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  await requireUser(request);
+  await apiAuthed(request, `/orders/${params.id}/cancel`, { method: 'POST' });
+  return redirect(`/orders/${params.id}`);
 }
 
 export default function OrderDetailPage() {
@@ -25,9 +33,18 @@ export default function OrderDetailPage() {
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Order #{order.id}</h1>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs uppercase">
-            {order.status}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs uppercase">
+              {order.status}
+            </span>
+            {CANCELLABLE_STATUSES.includes(order.status) ? (
+              <Form method="post">
+                <button className="rounded border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50">
+                  Cancel order
+                </button>
+              </Form>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-4 divide-y rounded border border-slate-200 bg-white">

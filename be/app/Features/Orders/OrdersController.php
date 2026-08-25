@@ -23,6 +23,11 @@ class OrdersController
         return $this->orders->findForUser($this->userId($request), $order);
     }
 
+    public function cancel(Request $request, int $order)
+    {
+        return $this->orders->cancelForUser($this->userId($request), $order);
+    }
+
     private function userId(Request $request): string
     {
         /** @var AuthenticatedUser $user */
