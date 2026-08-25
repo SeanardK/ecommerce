@@ -13,7 +13,9 @@ class OrdersController
 
     public function index(Request $request)
     {
-        return $this->orders->listForUser($this->userId($request));
+        $perPage = min((int) $request->integer('per_page', 10), 50);
+
+        return $this->orders->listForUser($this->userId($request), $perPage);
     }
 
     public function show(Request $request, int $order)

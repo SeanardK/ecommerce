@@ -13,9 +13,11 @@ class AdminOrderController
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return $this->orders->all();
+        $perPage = min((int) $request->integer('per_page', 20), 100);
+
+        return $this->orders->all($perPage);
     }
 
     public function updateStatus(Request $request, int $order)

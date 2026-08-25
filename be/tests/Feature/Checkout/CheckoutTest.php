@@ -110,6 +110,6 @@ class CheckoutTest extends TestCase
 
         $this->getJson('/api/orders', $headers)
             ->assertOk()
-            ->assertJsonCount(1);
+            ->assertJsonCount(1, 'data');
     }
 }

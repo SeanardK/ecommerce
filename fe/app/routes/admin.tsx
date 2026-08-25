@@ -12,7 +12,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const [products, categories, orders] = await Promise.all([
     apiGet<Paginated<Product>>('/products?per_page=50'),
     apiGet<Category[]>('/categories'),
-    apiAuthed<Order[]>(request, '/admin/orders'),
+    apiAuthed<Paginated<Order>>(request, '/admin/orders?per_page=50'),
   ]);
   return json({ products, categories, orders, user });
 }
@@ -165,7 +165,7 @@ export default function AdminPage() {
         <section>
           <h2 className="mb-3 text-lg font-medium">Orders</h2>
           <div className="space-y-2">
-            {orders.map((order) => (
+            {orders.data.map((order) => (
               <div key={order.id} className="flex items-center justify-between rounded border border-slate-200 bg-white p-3 text-sm">
                 <span>Order #{order.id} - {formatCents(order.total_cents)}</span>
                 <Form method="post" className="flex items-center gap-2">

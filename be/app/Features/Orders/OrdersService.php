@@ -4,7 +4,7 @@ namespace App\Features\Orders;
 
 use App\Features\Catalog\Models\Product;
 use App\Features\Orders\Models\Order;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class OrdersService
@@ -17,12 +17,12 @@ class OrdersService
         'cancelled' => [],
     ];
 
-    public function listForUser(string $userId): Collection
+    public function listForUser(string $userId, int $perPage = 10): LengthAwarePaginator
     {
         return Order::with('items')
             ->where('user_id', $userId)
             ->latest()
-            ->get();
+            ->paginate($perPage);
     }
 
     public function findForUser(string $userId, int $orderId): Order
@@ -32,9 +32,9 @@ class OrdersService
             ->findOrFail($orderId);
     }
 
-    public function all(): Collection
+    public function all(int $perPage = 20): LengthAwarePaginator
     {
-        return Order::with('items')->latest()->get();
+        return Order::with('items')->latest()->paginate($perPage);
     }
 
     public function transition(Order $order, string $status): Order

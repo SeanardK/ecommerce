@@ -73,7 +73,7 @@ class OrdersTest extends TestCase
 
         $this->getJson('/api/orders', $this->actAs('customer-1'))
             ->assertOk()
-            ->assertJsonCount(1)
+            ->assertJsonCount(1, 'data')
             ->assertJsonFragment(['id' => $order->id]);
     }
 
@@ -102,7 +102,7 @@ class OrdersTest extends TestCase
 
         $this->getJson('/api/admin/orders', $this->actAs('admin-1', ['admin']))
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_non_admin_cannot_list_all_orders(): void
@@ -111,5 +111,22 @@ class OrdersTest extends TestCase
 
         $this->getJson('/api/admin/orders', $this->actAs('customer-1'))
             ->assertForbidden();
+    }
+
+    public function test_orders_are_paginated_and_per_page_is_capped(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $this->orderFor('customer-1');
+        }
+
+        $this->getJson('/api/orders?per_page=2', $this->actAs('customer-1'))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('total', 3)
+            ->assertJsonPath('last_page', 2);
+
+        $this->getJson('/api/orders?per_page=999', $this->actAs('customer-1'))
+            ->assertOk()
+            ->assertJsonPath('per_page', 50);
     }
 }
