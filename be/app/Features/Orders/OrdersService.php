@@ -2,8 +2,10 @@
 
 namespace App\Features\Orders;
 
+use App\Features\Catalog\Models\Product;
 use App\Features\Orders\Models\Order;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class OrdersService
 {
@@ -15,12 +17,12 @@ class OrdersService
         'cancelled' => [],
     ];
 
-    public function listForUser(string $userId): Collection
+    public function listForUser(string $userId, int $perPage = 10): LengthAwarePaginator
     {
         return Order::with('items')
             ->where('user_id', $userId)
             ->latest()
-            ->get();
+            ->paginate($perPage);
     }
 
     public function findForUser(string $userId, int $orderId): Order
@@ -30,9 +32,16 @@ class OrdersService
             ->findOrFail($orderId);
     }
 
-    public function all(): Collection
+    public function all(int $perPage = 20): LengthAwarePaginator
     {
-        return Order::with('items')->latest()->get();
+        return Order::with('items')->latest()->paginate($perPage);
+    }
+
+    public function cancelForUser(string $userId, int $orderId): Order
+    {
+        $order = Order::where('user_id', $userId)->findOrFail($orderId);
+
+        return $this->transition($order, 'cancelled');
     }
 
     public function transition(Order $order, string $status): Order
@@ -43,8 +52,16 @@ class OrdersService
             throw new OrdersException("Cannot move order from {$order->status} to {$status}");
         }
 
-        $order->update(['status' => $status]);
+        return DB::transaction(function () use ($order, $status): Order {
+            if ($status === 'cancelled') {
+                foreach ($order->items as $item) {
+                    Product::whereKey($item->product_id)->increment('stock', $item->quantity);
+                }
+            }
 
-        return $order;
+            $order->update(['status' => $status]);
+
+            return $order;
+        });
     }
 }

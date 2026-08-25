@@ -5,7 +5,9 @@ namespace Tests\Feature\Admin;
 use App\Features\Auth\AuthenticatedUser;
 use App\Features\Auth\Contracts\TokenVerifier;
 use App\Features\Catalog\Models\Category;
+use App\Features\Catalog\Models\Product;
 use App\Features\Orders\Models\Order;
+use App\Features\Orders\Models\OrderItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\FakeTokenVerifier;
 use Tests\TestCase;
@@ -88,5 +90,49 @@ class AdminTest extends TestCase
 
         $this->patchJson("/api/admin/orders/{$order->id}/status", ['status' => 'completed'], $headers)
             ->assertStatus(422);
+    }
+
+    public function test_admin_creates_a_category(): void
+    {
+        $headers = $this->actAs(['admin']);
+
+        $this->postJson('/api/admin/categories', ['name' => 'Gaming'], $headers)
+            ->assertCreated()
+            ->assertJson(['name' => 'Gaming', 'slug' => 'gaming']);
+    }
+
+    public function test_cancelling_an_order_restocks_products(): void
+    {
+        $headers = $this->actAs(['admin']);
+        $category = Category::create(['name' => 'Audio', 'slug' => 'audio']);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Headphones',
+            'slug' => 'headphones',
+            'description' => 'desc',
+            'price_cents' => 1000,
+            'stock' => 3,
+            'active' => true,
+        ]);
+        $order = Order::create([
+            'user_id' => 'customer-1',
+            'status' => 'paid',
+            'subtotal_cents' => 2000,
+            'tax_cents' => 200,
+            'total_cents' => 2200,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => 'Headphones',
+            'quantity' => 2,
+            'unit_price_cents' => 1000,
+        ]);
+
+        $this->patchJson("/api/admin/orders/{$order->id}/status", ['status' => 'cancelled'], $headers)
+            ->assertOk()
+            ->assertJson(['status' => 'cancelled']);
+
+        $this->assertSame(5, $product->fresh()->stock);
     }
 }

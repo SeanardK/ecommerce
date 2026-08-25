@@ -79,6 +79,27 @@ class CheckoutTest extends TestCase
         $this->postJson('/api/checkout', $this->address, $headers)->assertStatus(422);
     }
 
+    public function test_it_fails_when_payment_is_declined(): void
+    {
+        $headers = $this->actAsCustomer();
+        $product = $this->product();
+
+        $this->app->instance(
+            \App\Features\Checkout\Payment\PaymentGateway::class,
+            new class implements \App\Features\Checkout\Payment\PaymentGateway {
+                public function charge(int $amountCents): \App\Features\Checkout\Payment\PaymentResult
+                {
+                    return new \App\Features\Checkout\Payment\PaymentResult(false, 'declined');
+                }
+            },
+        );
+
+        $this->postJson('/api/cart/items', ['product_id' => $product->id, 'quantity' => 1], $headers);
+
+        $this->postJson('/api/checkout', $this->address, $headers)->assertStatus(422);
+        $this->assertSame(10, $product->fresh()->stock);
+    }
+
     public function test_it_lists_orders_for_the_user(): void
     {
         $headers = $this->actAsCustomer();
@@ -89,6 +110,6 @@ class CheckoutTest extends TestCase
 
         $this->getJson('/api/orders', $headers)
             ->assertOk()
-            ->assertJsonCount(1);
+            ->assertJsonCount(1, 'data');
     }
 }

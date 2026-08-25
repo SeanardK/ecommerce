@@ -10,9 +10,9 @@ import type { Category, Order, Paginated, Product } from '~/features/shop/types'
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireAdmin(request);
   const [products, categories, orders] = await Promise.all([
-    apiGet<Paginated<Product>>('/products'),
+    apiGet<Paginated<Product>>('/products?per_page=50'),
     apiGet<Category[]>('/categories'),
-    apiAuthed<Order[]>(request, '/admin/orders'),
+    apiAuthed<Paginated<Order>>(request, '/admin/orders?per_page=50'),
   ]);
   return json({ products, categories, orders, user });
 }
@@ -30,20 +30,47 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ ok: true });
   }
 
+  if (intent === 'category_create') {
+    await apiAuthed(request, '/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name: form.get('name') }),
+    });
+    return json({ ok: true });
+  }
+
+  if (intent === 'product_delete') {
+    await apiAuthed(request, `/admin/products/${form.get('product_id')}`, {
+      method: 'DELETE',
+    });
+    return json({ ok: true });
+  }
+
+  const payload = {
+    category_id: Number(form.get('category_id')),
+    name: form.get('name'),
+    description: form.get('description'),
+    image_url: form.get('image_url') || null,
+    price_cents: Number(form.get('price_cents')),
+    stock: Number(form.get('stock')),
+    active: form.get('active') === 'on' || form.get('active') === 'true',
+  };
+
+  if (intent === 'product_update') {
+    await apiAuthed(request, `/admin/products/${form.get('product_id')}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return json({ ok: true });
+  }
+
   await apiAuthed(request, '/admin/products', {
     method: 'POST',
-    body: JSON.stringify({
-      category_id: Number(form.get('category_id')),
-      name: form.get('name'),
-      description: form.get('description'),
-      price_cents: Number(form.get('price_cents')),
-      stock: Number(form.get('stock')),
-      active: true,
-    }),
+    body: JSON.stringify({ ...payload, active: true }),
   });
-
   return json({ ok: true });
 }
+
+const inputClass = 'rounded border px-2 py-1';
 
 export default function AdminPage() {
   const { products, categories, orders, user } = useLoaderData<typeof loader>();
@@ -55,22 +82,34 @@ export default function AdminPage() {
         <h1 className="mb-6 text-2xl font-semibold">Admin</h1>
 
         <section className="mb-8">
+          <h2 className="mb-3 text-lg font-medium">New category</h2>
+          <Form method="post" className="flex gap-2">
+            <input type="hidden" name="intent" value="category_create" />
+            <input name="name" placeholder="Category name" required className={inputClass} />
+            <button className="rounded bg-slate-900 px-4 py-2 text-sm text-white">
+              Add category
+            </button>
+          </Form>
+        </section>
+
+        <section className="mb-8">
           <h2 className="mb-3 text-lg font-medium">New product</h2>
           <Form
             method="post"
             className="grid grid-cols-1 gap-3 rounded border border-slate-200 bg-white p-4 sm:grid-cols-2"
           >
-            <select name="category_id" className="rounded border px-2 py-1">
+            <select name="category_id" className={inputClass}>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>
               ))}
             </select>
-            <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
-            <input name="price_cents" type="number" placeholder="Price in cents" required className="rounded border px-2 py-1" />
-            <input name="stock" type="number" placeholder="Stock" required className="rounded border px-2 py-1" />
-            <input name="description" placeholder="Description" required className="rounded border px-2 py-1 sm:col-span-2" />
+            <input name="name" placeholder="Name" required className={inputClass} />
+            <input name="price_cents" type="number" placeholder="Price in cents" required className={inputClass} />
+            <input name="stock" type="number" placeholder="Stock" required className={inputClass} />
+            <input name="image_url" placeholder="Image URL" className={inputClass} />
+            <input name="description" placeholder="Description" required className={inputClass} />
             <button className="rounded bg-slate-900 px-4 py-2 text-white sm:col-span-2">
               Create product
             </button>
@@ -81,10 +120,44 @@ export default function AdminPage() {
           <h2 className="mb-3 text-lg font-medium">Products</h2>
           <div className="space-y-2">
             {products.data.map((product) => (
-              <div key={product.id} className="flex justify-between rounded border border-slate-200 bg-white p-3 text-sm">
-                <span>{product.name}</span>
-                <span>{formatCents(product.price_cents)} | stock {product.stock}</span>
-              </div>
+              <Form
+                key={product.id}
+                method="post"
+                className="flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-white p-3 text-sm"
+              >
+                <input type="hidden" name="product_id" value={product.id} />
+                <input type="hidden" name="category_id" value={product.category_id} />
+                <input type="hidden" name="name" value={product.name} />
+                <input type="hidden" name="description" value={product.description} />
+                <input type="hidden" name="image_url" value={product.image_url ?? ''} />
+                <span className="w-40 truncate font-medium">{product.name}</span>
+                <label className="flex items-center gap-1">
+                  Price
+                  <input name="price_cents" type="number" defaultValue={product.price_cents} className="w-24 rounded border px-2 py-1" />
+                </label>
+                <label className="flex items-center gap-1">
+                  Stock
+                  <input name="stock" type="number" defaultValue={product.stock} className="w-20 rounded border px-2 py-1" />
+                </label>
+                <label className="flex items-center gap-1">
+                  Active
+                  <input name="active" type="checkbox" defaultChecked={product.active} />
+                </label>
+                <button
+                  name="intent"
+                  value="product_update"
+                  className="rounded border px-2 py-1"
+                >
+                  Save
+                </button>
+                <button
+                  name="intent"
+                  value="product_delete"
+                  className="rounded border px-2 py-1 text-red-600"
+                >
+                  Delete
+                </button>
+              </Form>
             ))}
           </div>
         </section>
@@ -92,7 +165,7 @@ export default function AdminPage() {
         <section>
           <h2 className="mb-3 text-lg font-medium">Orders</h2>
           <div className="space-y-2">
-            {orders.map((order) => (
+            {orders.data.map((order) => (
               <div key={order.id} className="flex items-center justify-between rounded border border-slate-200 bg-white p-3 text-sm">
                 <span>Order #{order.id} - {formatCents(order.total_cents)}</span>
                 <Form method="post" className="flex items-center gap-2">

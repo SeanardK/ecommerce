@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description');
+            $table->string('image_url')->nullable();
             $table->unsignedInteger('price_cents');
             $table->unsignedInteger('stock')->default(0);
             $table->boolean('active')->default(true);

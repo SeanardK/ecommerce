@@ -98,9 +98,13 @@ cd fe && npm test
 | POST | /api/admin/products | admin | Create product |
 | PUT | /api/admin/products/{product} | admin | Update product |
 | DELETE | /api/admin/products/{product} | admin | Delete product |
+| POST | /api/admin/categories | admin | Create category |
+| DELETE | /api/admin/categories/{category} | admin | Delete category |
 | GET | /api/admin/orders | admin | List all orders |
 | PATCH | /api/admin/orders/{order}/status | admin | Change order status |
 
+Product listing accepts `category`, `search`, `per_page`, and `page` query parameters.
+
 ## Order lifecycle
 
-`pending -> paid -> fulfilled -> completed`, with `cancelled` reachable from `pending` and `paid`. Transitions are enforced on the server.
+`pending -> paid -> fulfilled -> completed`, with `cancelled` reachable from `pending` and `paid`. Transitions are enforced on the server. Cancelling an order restocks its products.

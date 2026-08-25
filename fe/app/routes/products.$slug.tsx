@@ -38,6 +38,13 @@ export default function ProductDetail() {
     <div>
       <Nav user={user} />
       <main className="mx-auto max-w-3xl px-4 py-6">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="mb-4 h-64 w-full rounded-lg object-cover"
+          />
+        ) : null}
         <h1 className="text-2xl font-semibold">{product.name}</h1>
         <p className="mt-2 text-slate-600">{product.description}</p>
         <p className="mt-4 text-xl font-bold">{formatCents(product.price_cents)}</p>
