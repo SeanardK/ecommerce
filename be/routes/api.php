@@ -7,11 +7,15 @@ use App\Features\Auth\AuthenticatedUser;
 use App\Features\Cart\CartController;
 use App\Features\Catalog\CatalogController;
 use App\Features\Checkout\CheckoutController;
+use App\Features\Checkout\PaymentWebhookController;
 use App\Features\Orders\OrdersController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => ['status' => 'ok']);
+
+Route::post('/webhooks/payment', [PaymentWebhookController::class, 'handle'])
+    ->middleware('throttle:30,1');
 
 Route::middleware('throttle:api')->group(function () {
     Route::get('/categories', [CatalogController::class, 'categories']);
