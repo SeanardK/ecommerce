@@ -82,6 +82,8 @@ cd fe && npm test
 
 ## API summary
 
+Full request/response shapes live in [`be/openapi.yaml`](be/openapi.yaml) (OpenAPI 3.0) — import it into Swagger UI, Postman, or Insomnia.
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/health | public | Health check |
@@ -92,19 +94,21 @@ cd fe && npm test
 | POST | /api/cart/items | customer | Add item |
 | PUT | /api/cart/items/{productId} | customer | Update quantity |
 | DELETE | /api/cart/items/{productId} | customer | Remove item |
-| POST | /api/checkout | customer | Place an order |
-| GET | /api/orders | customer | List own orders |
+| POST | /api/checkout | customer | Place an order (6/min) |
+| GET | /api/orders | customer | List own orders, paginated |
 | GET | /api/orders/{order} | customer | Order detail |
+| POST | /api/orders/{order}/cancel | customer | Cancel own order (pending/paid only), restocks |
+| POST | /api/webhooks/payment | signed | Payment gateway confirmation callback |
 | POST | /api/admin/products | admin | Create product |
 | PUT | /api/admin/products/{product} | admin | Update product |
 | DELETE | /api/admin/products/{product} | admin | Delete product |
 | POST | /api/admin/categories | admin | Create category |
 | DELETE | /api/admin/categories/{category} | admin | Delete category |
-| GET | /api/admin/orders | admin | List all orders |
+| GET | /api/admin/orders | admin | List all orders, paginated |
 | PATCH | /api/admin/orders/{order}/status | admin | Change order status |
 
-Product listing accepts `category`, `search`, `per_page`, and `page` query parameters.
+Product and order listings accept `category`/`search` (products only), `per_page`, and `page` query parameters. Every `/api/*` route is rate limited (60/min, keyed by user id or IP).
 
 ## Order lifecycle
 
-`pending -> paid -> fulfilled -> completed`, with `cancelled` reachable from `pending` and `paid`. Transitions are enforced on the server. Cancelling an order restocks its products.
+`pending -> paid -> fulfilled -> completed`, with `cancelled` reachable from `pending` and `paid`. Transitions are enforced on the server. Cancelling an order (by its owner or an admin) restocks its products. `POST /api/webhooks/payment` drives the same pending -> paid/cancelled transition for gateways that confirm payment asynchronously.
