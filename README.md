@@ -8,8 +8,11 @@ A full-stack storefront with catalog, cart, checkout, orders, and an admin area.
 - Persistent per-user cart with server-side stock checks
 - Checkout with address capture, server-computed totals, and a mock payment gateway
 - Orders with a guarded status lifecycle
-- Admin product management and order status board, gated by realm role
+- Admin product management and order status board, gated by realm role, split into per-feature tabs
+- Product images by upload to the API or by external URL
 - Keycloak authentication with customer and admin roles
+- Product page SEO meta, canonical link, and Product JSON-LD
+- Health endpoint with a database check, request id propagation, and JSON logs
 
 ## Tech stack
 
@@ -60,6 +63,7 @@ cd be
 cp .env.example .env
 composer install
 php artisan key:generate
+php artisan storage:link
 php artisan migrate --seed
 php artisan serve
 ```

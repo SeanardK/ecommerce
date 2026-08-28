@@ -135,4 +135,23 @@ class AdminTest extends TestCase
 
         $this->assertSame(5, $product->fresh()->stock);
     }
+
+    public function test_admin_product_list_includes_inactive_products(): void
+    {
+        $headers = $this->actAs(['admin']);
+        $category = Category::create(['name' => 'Audio', 'slug' => 'audio']);
+        Product::create([
+            'category_id' => $category->id,
+            'name' => 'Hidden',
+            'slug' => 'hidden',
+            'description' => 'desc',
+            'price_cents' => 500,
+            'stock' => 1,
+            'active' => false,
+        ]);
+
+        $this->getJson('/api/admin/products', $headers)
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Hidden');
+    }
 }

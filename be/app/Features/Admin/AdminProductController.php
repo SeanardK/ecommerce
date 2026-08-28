@@ -8,6 +8,13 @@ use Illuminate\Support\Str;
 
 class AdminProductController
 {
+    public function index(Request $request)
+    {
+        $perPage = min((int) $request->integer('per_page', 20), 100);
+
+        return Product::with('category:id,name,slug')->orderBy('name')->paginate($perPage);
+    }
+
     public function store(Request $request)
     {
         $data = $this->validated($request);

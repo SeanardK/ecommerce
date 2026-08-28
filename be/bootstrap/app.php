@@ -3,6 +3,7 @@
 use App\Features\Auth\Middleware\KeycloakAuth;
 use App\Features\Auth\Middleware\RequireRole;
 use App\Support\DomainException;
+use App\Support\Middleware\RequestId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(prepend: [RequestId::class]);
+
         $middleware->alias([
             'keycloak' => KeycloakAuth::class,
             'role' => RequireRole::class,

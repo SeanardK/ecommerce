@@ -14,6 +14,8 @@ until php artisan migrate --force 2>/dev/null; do
   sleep 3
 done
 
+php artisan storage:link --force || true
+
 php artisan db:seed --class=Database\\Seeders\\CatalogSeeder --force || true
 
 php artisan serve --host=0.0.0.0 --port=8000

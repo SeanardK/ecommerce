@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { Form, useLoaderData } from '@remix-run/react';
 import { Nav } from '~/components/nav';
@@ -12,8 +12,30 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     apiGet<Product>(`/products/${params.slug}`),
     getUser(request),
   ]);
-  return json({ product, user });
+  const canonical = new URL(request.url).origin + `/products/${product.slug}`;
+  return json({ product, user, canonical });
 }
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  if (!data) {
+    return [{ title: 'Product not found | Shop' }];
+  }
+
+  const { product, canonical } = data;
+  const description = product.description.slice(0, 160);
+
+  return [
+    { title: `${product.name} | Shop` },
+    { name: 'description', content: description },
+    { property: 'og:type', content: 'product' },
+    { property: 'og:title', content: product.name },
+    { property: 'og:description', content: description },
+    { property: 'og:url', content: canonical },
+    ...(product.image_url ? [{ property: 'og:image', content: product.image_url }] : []),
+    { name: 'twitter:card', content: product.image_url ? 'summary_large_image' : 'summary' },
+    { tagName: 'link', rel: 'canonical', href: canonical },
+  ];
+};
 
 export async function action({ request, params }: ActionFunctionArgs) {
   await requireUser(request);
@@ -31,13 +53,41 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return redirect('/cart');
 }
 
+function productSchema(product: Product, canonical: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    sku: product.slug,
+    ...(product.image_url ? { image: [product.image_url] } : {}),
+    ...(product.category ? { category: product.category.name } : {}),
+    offers: {
+      '@type': 'Offer',
+      url: canonical,
+      priceCurrency: 'USD',
+      price: (product.price_cents / 100).toFixed(2),
+      availability:
+        product.stock > 0
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+    },
+  };
+}
+
 export default function ProductDetail() {
-  const { product, user } = useLoaderData<typeof loader>();
+  const { product, user, canonical } = useLoaderData<typeof loader>();
 
   return (
     <div>
       <Nav user={user} />
       <main className="mx-auto max-w-3xl px-4 py-6">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(productSchema(product, canonical)),
+          }}
+        />
         {product.image_url ? (
           <img
             src={product.image_url}

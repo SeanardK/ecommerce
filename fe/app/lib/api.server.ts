@@ -18,7 +18,7 @@ export async function apiAuthed<T>(
   const token = await getAccessToken(request);
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
-  if (init.body) {
+  if (init.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
   if (token) {

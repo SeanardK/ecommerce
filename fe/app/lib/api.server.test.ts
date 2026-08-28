@@ -62,4 +62,17 @@ describe('api.server', () => {
     const request = new Request('http://app/');
     await expect(apiAuthed(request, '/cart/items/1', { method: 'DELETE' })).resolves.toBeUndefined();
   });
+
+  it('apiAuthed leaves Content-Type unset for FormData bodies', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const body = new FormData();
+    body.append('image', new File(['x'], 'p.jpg', { type: 'image/jpeg' }));
+    const request = await authedRequest('token-abc');
+    await apiAuthed(request, '/admin/products/images', { method: 'POST', body });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init.headers as Headers).has('Content-Type')).toBe(false);
+  });
 });
