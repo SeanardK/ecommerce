@@ -3,7 +3,6 @@
 namespace App\Features\Admin;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class AdminImageController
 {
@@ -15,6 +14,6 @@ class AdminImageController
 
         $path = $request->file('image')->store('products', 'public');
 
-        return response()->json(['url' => Storage::disk('public')->url($path)], 201);
+        return response()->json(['url' => '/storage/'.$path], 201);
     }
 }

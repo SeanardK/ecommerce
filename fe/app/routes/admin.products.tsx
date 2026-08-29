@@ -1,15 +1,16 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
   json,
   unstable_createMemoryUploadHandler,
   unstable_parseMultipartFormData,
-} from '@remix-run/node';
-import { Form, useLoaderData } from '@remix-run/react';
-import { useMemo, useRef, useState } from 'react';
-import { requireAdmin } from '~/lib/auth.server';
-import { apiAuthed, apiGet } from '~/lib/api.server';
-import { formatCents } from '~/lib/money';
-import type { Category, Paginated, Product } from '~/features/shop/types';
+} from "@remix-run/node";
+import { Form, useLoaderData } from "@remix-run/react";
+import { useMemo, useRef, useState } from "react";
+import { requireAdmin } from "~/lib/auth.server";
+import { apiAuthed, apiGet } from "~/lib/api.server";
+import { resolveImageUrl as toAbsoluteImageUrl } from "~/lib/media.server";
+import { formatCents } from "~/lib/money";
+import type { Category, Paginated, Product } from "~/features/shop/types";
 
 const uploadHandler = unstable_createMemoryUploadHandler({
   maxPartSize: 2 * 1024 * 1024,
@@ -18,90 +19,98 @@ const uploadHandler = unstable_createMemoryUploadHandler({
 export async function loader({ request }: LoaderFunctionArgs) {
   await requireAdmin(request);
   const [products, categories] = await Promise.all([
-    apiAuthed<Paginated<Product>>(request, '/admin/products?per_page=50'),
-    apiGet<Category[]>('/categories'),
+    apiAuthed<Paginated<Product>>(request, "/admin/products?per_page=50"),
+    apiGet<Category[]>("/categories"),
   ]);
-  return json({ products, categories });
+  return json({
+    products: {
+      ...products,
+      data: products.data.map((product) => ({
+        ...product,
+        image_url: toAbsoluteImageUrl(product.image_url),
+      })),
+    },
+    categories,
+  });
 }
 
 async function resolveImageUrl(
   request: Request,
   form: FormData,
 ): Promise<string | null> {
-  const file = form.get('image_file');
+  const file = form.get("image_file");
   if (file instanceof File && file.size > 0) {
     const upload = new FormData();
-    upload.append('image', file, file.name);
+    upload.append("image", file, file.name);
     const uploaded = await apiAuthed<{ url: string }>(
       request,
-      '/admin/products/images',
-      { method: 'POST', body: upload },
+      "/admin/products/images",
+      { method: "POST", body: upload },
     );
     return uploaded.url;
   }
 
-  const url = form.get('image_url');
-  return typeof url === 'string' && url.trim() !== '' ? url.trim() : null;
+  const url = form.get("image_url");
+  return typeof url === "string" && url.trim() !== "" ? url.trim() : null;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   await requireAdmin(request);
 
-  const contentType = request.headers.get('Content-Type') ?? '';
-  const form = contentType.includes('multipart/form-data')
+  const contentType = request.headers.get("Content-Type") ?? "";
+  const form = contentType.includes("multipart/form-data")
     ? await unstable_parseMultipartFormData(request, uploadHandler)
     : await request.formData();
 
-  const intent = form.get('intent');
+  const intent = form.get("intent");
 
-  if (intent === 'product_delete') {
-    await apiAuthed(request, `/admin/products/${form.get('product_id')}`, {
-      method: 'DELETE',
+  if (intent === "product_delete") {
+    await apiAuthed(request, `/admin/products/${form.get("product_id")}`, {
+      method: "DELETE",
     });
     return json({ ok: true });
   }
 
   const payload = {
-    category_id: Number(form.get('category_id')),
-    name: form.get('name'),
-    description: form.get('description'),
+    category_id: Number(form.get("category_id")),
+    name: form.get("name"),
+    description: form.get("description"),
     image_url: await resolveImageUrl(request, form),
-    price_cents: Number(form.get('price_cents')),
-    stock: Number(form.get('stock')),
-    active: form.get('active') === 'on' || form.get('active') === 'true',
+    price_cents: Number(form.get("price_cents")),
+    stock: Number(form.get("stock")),
+    active: form.get("active") === "on" || form.get("active") === "true",
   };
 
-  if (intent === 'product_update') {
-    await apiAuthed(request, `/admin/products/${form.get('product_id')}`, {
-      method: 'PUT',
+  if (intent === "product_update") {
+    await apiAuthed(request, `/admin/products/${form.get("product_id")}`, {
+      method: "PUT",
       body: JSON.stringify(payload),
     });
     return json({ ok: true });
   }
 
-  await apiAuthed(request, '/admin/products', {
-    method: 'POST',
+  await apiAuthed(request, "/admin/products", {
+    method: "POST",
     body: JSON.stringify({ ...payload, active: true }),
   });
   return json({ ok: true });
 }
 
 const inputClass =
-  'rounded-md border border-slate-300 px-2.5 py-1.5 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500';
-const labelClass = 'block text-xs font-medium text-slate-500';
+  "rounded-md border border-slate-300 px-2.5 py-1.5 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500";
+const labelClass = "block text-xs font-medium text-slate-500";
 
-/** Thumbnail that falls back to a placeholder glyph on missing/broken src. */
 function ImagePreview({
   src,
   alt,
-  size = 'md',
+  size = "md",
 }: {
   src: string | null;
   alt: string;
-  size?: 'md' | 'lg';
+  size?: "md" | "lg";
 }) {
   const [broken, setBroken] = useState(false);
-  const dims = size === 'lg' ? 'h-24 w-24' : 'h-16 w-16';
+  const dims = size === "lg" ? "h-24 w-24" : "h-16 w-16";
 
   if (!src || broken) {
     return (
@@ -122,7 +131,9 @@ function ImagePreview({
             d="M3 16.5V6.75A2.25 2.25 0 0 1 5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5m-18 0A2.25 2.25 0 0 0 5.25 19.5h13.5A2.25 2.25 0 0 0 21 17.25m-18 0 5.03-5.03a1.5 1.5 0 0 1 2.12 0l2.35 2.35m8.5 2.68-4.65-4.65a1.5 1.5 0 0 0-2.12 0L13.5 15"
           />
         </svg>
-        <span className="text-[10px] font-medium uppercase tracking-wide">No image</span>
+        <span className="text-[10px] font-medium uppercase tracking-wide">
+          No image
+        </span>
       </div>
     );
   }
@@ -137,10 +148,6 @@ function ImagePreview({
   );
 }
 
-/**
- * Shared image_url + file inputs with a live preview: typing a URL or picking
- * a file updates the thumbnail immediately, before the form is submitted.
- */
 function ImageField({
   name,
   initialUrl,
@@ -148,7 +155,7 @@ function ImageField({
 }: {
   name: string;
   initialUrl: string | null;
-  size: 'md' | 'lg';
+  size: "md" | "lg";
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialUrl);
   const objectUrlRef = useRef<string | null>(null);
@@ -168,7 +175,7 @@ function ImageField({
           <label className={labelClass}>Image URL</label>
           <input
             name={`${name}_url`}
-            defaultValue={initialUrl ?? ''}
+            defaultValue={initialUrl ?? ""}
             placeholder="https://..."
             className={`${inputClass} w-full`}
             onChange={(e) => {
@@ -178,8 +185,11 @@ function ImageField({
           />
         </div>
         <div>
-          <label className={labelClass}>
-            Or upload <span className="font-normal normal-case text-slate-400">(JPEG/PNG/WebP, up to 2MB, wins over URL)</span>
+          <label className={`${labelClass} my-1`}>
+            Or upload{" "}
+            <span className="font-normal normal-case text-slate-400">
+              (JPEG/PNG/WebP, up to 2MB, wins over URL)
+            </span>
           </label>
           <input
             name={`${name}_file`}
@@ -232,33 +242,61 @@ export default function AdminProducts() {
             </div>
             <div>
               <label className={labelClass}>Name</label>
-              <input name="name" placeholder="Product name" required className={`${inputClass} w-full`} />
+              <input
+                name="name"
+                placeholder="Product name"
+                required
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div>
               <label className={labelClass}>Price (cents)</label>
-              <input name="price_cents" type="number" placeholder="1000" required className={`${inputClass} w-full`} />
+              <input
+                name="price_cents"
+                type="number"
+                placeholder="1000"
+                required
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div>
               <label className={labelClass}>Stock</label>
-              <input name="stock" type="number" placeholder="10" required className={`${inputClass} w-full`} />
+              <input
+                name="stock"
+                type="number"
+                placeholder="10"
+                required
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Description</label>
-              <input name="description" placeholder="Short description" required className={`${inputClass} w-full`} />
+              <input
+                name="description"
+                placeholder="Short description"
+                required
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div className="sm:col-span-2">
               <ImageField name="image" initialUrl={null} size="lg" />
             </div>
           </div>
-          <button className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700">
-            Create product
-          </button>
+
+          <div className="flex justify-end">
+            <button className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700">
+              Create product
+            </button>
+          </div>
         </Form>
       </section>
 
       <section>
         <h2 className="mb-3 text-lg font-medium">
-          Products <span className="text-sm font-normal text-slate-400">({products.total})</span>
+          Products{" "}
+          <span className="text-sm font-normal text-slate-400">
+            ({products.total})
+          </span>
         </h2>
         <div className="space-y-3">
           {products.data.map((product) => (
@@ -269,29 +307,45 @@ export default function AdminProducts() {
               className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             >
               <input type="hidden" name="product_id" value={product.id} />
-              <input type="hidden" name="category_id" value={product.category_id} />
+              <input
+                type="hidden"
+                name="category_id"
+                value={product.category_id}
+              />
               <input type="hidden" name="name" value={product.name} />
-              <input type="hidden" name="description" value={product.description} />
+              <input
+                type="hidden"
+                name="description"
+                value={product.description}
+              />
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <ImageField name="image" initialUrl={product.image_url} size="md" />
+                <ImageField
+                  name="image"
+                  initialUrl={product.image_url}
+                  size="md"
+                />
 
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-slate-900">{product.name}</p>
+                      <p className="font-medium text-slate-900">
+                        {product.name}
+                      </p>
                       <p className="text-xs text-slate-400">
-                        {categoryNames.get(product.category_id) ?? 'Uncategorized'} · {formatCents(product.price_cents)}
+                        {categoryNames.get(product.category_id) ??
+                          "Uncategorized"}{" "}
+                        · {formatCents(product.price_cents)}
                       </p>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${
                         product.active
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-slate-100 text-slate-500'
+                          ? "bg-green-50 text-green-700"
+                          : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      {product.active ? 'Active' : 'Inactive'}
+                      {product.active ? "Active" : "Inactive"}
                     </span>
                   </div>
 

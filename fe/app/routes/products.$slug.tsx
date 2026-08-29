@@ -4,6 +4,7 @@ import { Form, useLoaderData } from '@remix-run/react';
 import { Nav } from '~/components/nav';
 import { getUser, requireUser } from '~/lib/auth.server';
 import { apiAuthed, apiGet } from '~/lib/api.server';
+import { resolveImageUrl } from '~/lib/media.server';
 import { formatCents } from '~/lib/money';
 import type { Product } from '~/features/shop/types';
 
@@ -13,7 +14,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getUser(request),
   ]);
   const canonical = new URL(request.url).origin + `/products/${product.slug}`;
-  return json({ product, user, canonical });
+  return json({
+    product: { ...product, image_url: resolveImageUrl(product.image_url) },
+    user,
+    canonical,
+  });
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {

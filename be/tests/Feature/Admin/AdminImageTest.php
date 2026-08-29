@@ -44,7 +44,7 @@ class AdminImageTest extends TestCase
         ], $headers)->assertCreated();
 
         $url = $response->json('url');
-        $this->assertStringContainsString('/storage/products/', $url);
+        $this->assertStringStartsWith('/storage/products/', $url);
         $this->assertCount(1, Storage::disk('public')->files('products'));
     }
 
