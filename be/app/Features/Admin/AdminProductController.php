@@ -49,7 +49,7 @@ class AdminProductController
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'name' => ['required', 'string'],
             'description' => ['required', 'string'],
-            'image_url' => ['nullable', 'url'],
+            'image_url' => ['nullable', 'string', 'max:2048', 'regex:/^(https?:\/\/\S+|\/\S+)$/'],
             'price_cents' => ['required', 'integer', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'active' => ['required', 'boolean'],

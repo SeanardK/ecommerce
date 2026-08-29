@@ -61,6 +61,58 @@ class AdminTest extends TestCase
             ->assertJson(['name' => 'New Speaker', 'slug' => 'new-speaker']);
     }
 
+    public function test_admin_creates_a_product_with_a_host_relative_image_path(): void
+    {
+        $headers = $this->actAs(['admin']);
+        $category = Category::create(['name' => 'Audio', 'slug' => 'audio']);
+
+        $this->postJson('/api/admin/products', [
+            'category_id' => $category->id,
+            'name' => 'Uploaded Image Speaker',
+            'description' => 'desc',
+            'image_url' => '/storage/products/abc123.jpg',
+            'price_cents' => 1000,
+            'stock' => 5,
+            'active' => true,
+        ], $headers)
+            ->assertCreated()
+            ->assertJson(['image_url' => '/storage/products/abc123.jpg']);
+    }
+
+    public function test_admin_creates_a_product_with_an_absolute_image_url(): void
+    {
+        $headers = $this->actAs(['admin']);
+        $category = Category::create(['name' => 'Audio', 'slug' => 'audio']);
+
+        $this->postJson('/api/admin/products', [
+            'category_id' => $category->id,
+            'name' => 'External Image Speaker',
+            'description' => 'desc',
+            'image_url' => 'https://example.com/speaker.jpg',
+            'price_cents' => 1000,
+            'stock' => 5,
+            'active' => true,
+        ], $headers)
+            ->assertCreated()
+            ->assertJson(['image_url' => 'https://example.com/speaker.jpg']);
+    }
+
+    public function test_admin_cannot_create_a_product_with_a_malformed_image_url(): void
+    {
+        $headers = $this->actAs(['admin']);
+        $category = Category::create(['name' => 'Audio', 'slug' => 'audio']);
+
+        $this->postJson('/api/admin/products', [
+            'category_id' => $category->id,
+            'name' => 'Bad Image Speaker',
+            'description' => 'desc',
+            'image_url' => 'not a url',
+            'price_cents' => 1000,
+            'stock' => 5,
+            'active' => true,
+        ], $headers)->assertStatus(422);
+    }
+
     public function test_admin_advances_order_status(): void
     {
         $headers = $this->actAs(['admin']);
