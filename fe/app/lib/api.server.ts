@@ -2,10 +2,21 @@ import { getAccessToken } from './auth.server';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000/api';
 
+async function throwUpstreamError(response: Response): Promise<never> {
+  let message = response.statusText || 'Upstream error';
+  try {
+    const body = await response.clone().json();
+    if (body && typeof body.message === 'string') {
+      message = body.message;
+    }
+  } catch {}
+  throw new Response(message, { status: response.status, statusText: message });
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`);
   if (!response.ok) {
-    throw new Response('Upstream error', { status: response.status });
+    await throwUpstreamError(response);
   }
   return (await response.json()) as T;
 }
@@ -27,7 +38,7 @@ export async function apiAuthed<T>(
 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
   if (!response.ok) {
-    throw new Response('Upstream error', { status: response.status });
+    await throwUpstreamError(response);
   }
   if (response.status === 204) {
     return undefined as T;

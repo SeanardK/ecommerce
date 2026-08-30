@@ -32,6 +32,30 @@ describe('api.server', () => {
     await expect(apiGet('/categories')).rejects.toMatchObject({ status: 500 });
   });
 
+  it('carries the upstream JSON error message onto the thrown Response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Cart is empty' }), { status: 422 }),
+      ),
+    );
+
+    const error = (await apiGet('/checkout').catch((e: unknown) => e)) as Response;
+    expect(error.status).toBe(422);
+    expect(await error.text()).toBe('Cart is empty');
+  });
+
+  it('falls back to a generic message for a non-JSON error body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('<html>gateway down</html>', { status: 502 })),
+    );
+
+    const error = (await apiGet('/categories').catch((e: unknown) => e)) as Response;
+    expect(error.status).toBe(502);
+    expect(await error.text()).not.toContain('<html>');
+  });
+
   it('apiAuthed attaches the bearer token from the session', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ items: [] }), { status: 200 }),
