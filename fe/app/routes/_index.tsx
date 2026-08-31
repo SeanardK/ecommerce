@@ -4,6 +4,7 @@ import { Form, Link, useLoaderData, useSearchParams } from '@remix-run/react';
 import { Nav } from '~/components/nav';
 import { getUser } from '~/lib/auth.server';
 import { apiGet } from '~/lib/api.server';
+import { resolveImageUrl } from '~/lib/media.server';
 import { formatCents } from '~/lib/money';
 import type { Category, Paginated, Product } from '~/features/shop/types';
 
@@ -26,7 +27,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
     getUser(request),
   ]);
 
-  return json({ products, categories, category, search, user });
+  return json({
+    products: {
+      ...products,
+      data: products.data.map((product) => ({
+        ...product,
+        image_url: resolveImageUrl(product.image_url),
+      })),
+    },
+    categories,
+    category,
+    search,
+    user,
+  });
 }
 
 function pageLink(params: URLSearchParams, page: number): string {

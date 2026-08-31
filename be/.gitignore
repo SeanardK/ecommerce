@@ -13,9 +13,12 @@
 /.zed
 /auth.json
 /node_modules
+pnpm-lock.yaml
+pnpm-workspace.yaml
 /public/build
 /public/hot
 /public/storage
+/storage/app/public/products
 /storage/*.key
 /storage/pail
 /vendor

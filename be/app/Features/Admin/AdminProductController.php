@@ -8,6 +8,13 @@ use Illuminate\Support\Str;
 
 class AdminProductController
 {
+    public function index(Request $request)
+    {
+        $perPage = min((int) $request->integer('per_page', 20), 100);
+
+        return Product::with('category:id,name,slug')->orderBy('name')->paginate($perPage);
+    }
+
     public function store(Request $request)
     {
         $data = $this->validated($request);
@@ -42,7 +49,7 @@ class AdminProductController
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'name' => ['required', 'string'],
             'description' => ['required', 'string'],
-            'image_url' => ['nullable', 'url'],
+            'image_url' => ['nullable', 'string', 'max:2048', 'regex:/^(https?:\/\/\S+|\/\S+)$/'],
             'price_cents' => ['required', 'integer', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'active' => ['required', 'boolean'],
